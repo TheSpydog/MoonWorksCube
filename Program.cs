@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
@@ -24,6 +25,8 @@ public class Program : Game
 	RenderTarget depthTarget;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+
+	Stopwatch timer;
 
 	struct Uniforms
 	{
@@ -200,15 +203,23 @@ public class Program : Game
 				}
 			}
 		);
+
+		timer = Stopwatch.StartNew();
 	}
 
 	protected override void Update(System.TimeSpan dt) { }
 
 	protected override void Draw(System.TimeSpan dt, double alpha)
 	{
-		Matrix4x4 proj = Matrix4x4.CreatePerspective(Window.Width, Window.Height, 0.01f, 10f);
-		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 6f), Vector3.Zero, Vector3.Up);
-		Matrix4x4 viewProjection = proj * view;
+		Quaternion rotation = Quaternion.CreateFromYawPitchRoll(
+			(float)timer.Elapsed.TotalSeconds * 2f,
+			0,
+			(float)timer.Elapsed.TotalSeconds * 2f
+		);
+		Matrix4x4 model = Matrix4x4.CreateFromQuaternion(rotation);
+		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), Window.Width / Window.Height, 0.01f, 10f);
+		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 4f), Vector3.Zero, Vector3.Up);
+		Matrix4x4 viewProjection = model * view * proj;
 		Uniforms uniforms = new Uniforms { ViewProjection = viewProjection };
 
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
@@ -216,6 +227,11 @@ public class Program : Game
 			new DepthStencilAttachmentInfo
 			{
 				DepthStencilTarget = depthTarget,
+				DepthStencilValue = new DepthStencilValue
+				{
+					Depth = 1f,
+					Stencil = 0
+				},
 				LoadOp = LoadOp.Clear,
 				StoreOp = StoreOp.DontCare
 			},
@@ -224,7 +240,7 @@ public class Program : Game
 				RenderTarget = colorTarget,
 				ClearColor = Color.CornflowerBlue,
 				LoadOp = LoadOp.Clear,
-				StoreOp = StoreOp.DontCare
+				StoreOp = StoreOp.Store
 			}
 		);
 		cmdbuf.BindGraphicsPipeline(cubePipeline);
