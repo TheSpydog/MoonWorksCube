@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -21,10 +22,14 @@ public class Program : Game
 	}
 
 	GraphicsPipeline cubePipeline;
+	GraphicsPipeline skyboxPipeline;
 	RenderTarget colorTarget;
 	RenderTarget depthTarget;
-	Buffer vertexBuffer;
+	Buffer cubeVertexBuffer;
+	Buffer skyboxVertexBuffer;
 	Buffer indexBuffer;
+	Texture skyboxTexture;
+	Sampler skyboxSampler;
 
 	Stopwatch timer;
 
@@ -45,16 +50,66 @@ public class Program : Game
 		}
 	}
 
+	struct PositionVertex
+	{
+		public Vector3 Position;
+
+		public PositionVertex(Vector3 position)
+		{
+			Position = position;
+		}
+	}
+
+	void LoadCubemap(CommandBuffer cmdbuf, string[] imagePaths)
+	{
+		System.IntPtr textureData;
+		int w, h, numChannels;
+
+		for (uint i = 0; i < imagePaths.Length; i++)
+		{
+			textureData = RefreshCS.Refresh.Refresh_Image_Load(
+				imagePaths[i],
+				out w,
+				out h,
+				out numChannels
+			);
+			cmdbuf.SetTextureData(
+				new TextureSlice(
+					skyboxTexture,
+					new Rect(0, 0, w, h),
+					0,
+					i
+				),
+				textureData,
+				(uint) (w * h * 4) // w * h * numChannels does not work
+			);
+		}
+	}
+
 	public Program(WindowCreateInfo windowCreateInfo, PresentMode presentMode)
 		: base(windowCreateInfo, presentMode, 60, true)
 	{
-		ShaderModule vertShaderModule = new ShaderModule(
-			GraphicsDevice,
-			System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "vert.spv")
+		string baseContentPath = Path.Combine(
+			System.AppDomain.CurrentDomain.BaseDirectory,
+			"Content"
 		);
-		ShaderModule fragShaderModule = new ShaderModule(
+
+		ShaderModule cubeVertShaderModule = new ShaderModule(
 			GraphicsDevice,
-			System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "frag.spv")
+			Path.Combine(baseContentPath, "cube_vert.spv")
+		);
+		ShaderModule cubeFragShaderModule = new ShaderModule(
+			GraphicsDevice,
+			Path.Combine(baseContentPath, "cube_frag.spv")
+		);
+
+		ShaderModule skyboxVertShaderModule = new ShaderModule(
+			GraphicsDevice,
+			Path.Combine(baseContentPath, "skybox_vert.spv")
+		);
+		ShaderModule skyboxFragShaderModule = new ShaderModule(
+			GraphicsDevice,
+			Path.Combine(baseContentPath, "skybox_frag.spv")
 		);
 
 		colorTarget = RenderTarget.CreateBackedRenderTarget(
@@ -74,10 +129,23 @@ public class Program : Game
 		);
 		depthTarget = new RenderTarget(GraphicsDevice, new TextureSlice(depthTex));
 
-		vertexBuffer = new Buffer(
+		skyboxTexture = Texture.CreateTextureCube(
+			GraphicsDevice,
+			2048,
+			TextureFormat.R8G8B8A8,
+			TextureUsageFlags.Sampler
+		);
+		skyboxSampler = new Sampler(GraphicsDevice, new SamplerCreateInfo());
+
+		cubeVertexBuffer = new Buffer(
 			GraphicsDevice,
 			BufferUsageFlags.Vertex,
 			(uint) (Marshal.SizeOf<PositionColorVertex>() * 24)
+		);
+		skyboxVertexBuffer = new Buffer(
+			GraphicsDevice,
+			BufferUsageFlags.Vertex,
+			(uint) (Marshal.SizeOf<PositionVertex>() * 24)
 		);
 		indexBuffer = new Buffer(
 			GraphicsDevice,
@@ -85,9 +153,11 @@ public class Program : Game
 			(uint) (Marshal.SizeOf<ushort>() * 36)
 		);
 
+		// Begin submitting resource data to the GPU.
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
+
 		cmdbuf.SetBufferData<PositionColorVertex>(
-			vertexBuffer,
+			cubeVertexBuffer,
 			new PositionColorVertex[]
 			{
 				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(1f, 0f, 0f)),
@@ -118,9 +188,46 @@ public class Program : Game
 				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(0f, 0.5f, 0f)),
 				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 0.5f, 0f)),
 				new PositionColorVertex(new Vector3(1, 1, 1), new Color(0f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, -1), new Color(0f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, -1), new Color(0f, 0.5f, 0f))
 			}
 		);
+
+		cmdbuf.SetBufferData<PositionVertex>(
+			skyboxVertexBuffer,
+			new PositionVertex[]
+			{
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(10, -10, -10)),
+				new PositionVertex(new Vector3(10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, -10)),
+
+				new PositionVertex(new Vector3(-10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(-10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+				new PositionVertex(new Vector3(-10, -10, 10)),
+
+				new PositionVertex(new Vector3(10, -10, -10)),
+				new PositionVertex(new Vector3(10, 10, -10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(-10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, -10)),
+
+				new PositionVertex(new Vector3(-10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(10, 10, -10))
+			}
+		);
+
 		cmdbuf.SetBufferData<ushort>(
 			indexBuffer,
 			new ushort[]
@@ -133,6 +240,17 @@ public class Program : Game
 				22, 21, 20,	23, 22, 20
 			}
 		);
+
+		LoadCubemap(cmdbuf, new string[]
+		{
+			Path.Combine(baseContentPath, "right.png"),
+			Path.Combine(baseContentPath, "left.png"),
+			Path.Combine(baseContentPath, "top.png"),
+			Path.Combine(baseContentPath, "bottom.png"),
+			Path.Combine(baseContentPath, "front.png"),
+			Path.Combine(baseContentPath, "back.png"),
+		});
+
 		GraphicsDevice.Submit(cmdbuf);
 
 		cubePipeline = new GraphicsPipeline(
@@ -142,7 +260,7 @@ public class Program : Game
 				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
 				PrimitiveType = PrimitiveType.TriangleList,
 				PipelineLayoutInfo = new GraphicsPipelineLayoutInfo(0, 0),
-				RasterizerState = RasterizerState.CW_CullNone,
+				RasterizerState = RasterizerState.CW_CullBack,
 				MultisampleState = MultisampleState.None,
 				DepthStencilState = DepthStencilState.DepthReadWrite,
 				ColorBlendState = new ColorBlendState(),
@@ -192,13 +310,75 @@ public class Program : Game
 				VertexShaderState = new ShaderStageState
 				{
 					EntryPointName = "main",
-					ShaderModule = vertShaderModule,
+					ShaderModule = cubeVertShaderModule,
 					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>()
 				},
 				FragmentShaderState = new ShaderStageState
 				{
 					EntryPointName = "main",
-					ShaderModule = fragShaderModule,
+					ShaderModule = cubeFragShaderModule,
+					UniformBufferSize = 0
+				}
+			}
+		);
+
+		skyboxPipeline = new GraphicsPipeline(
+			GraphicsDevice,
+			new GraphicsPipelineCreateInfo
+			{
+				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
+				PrimitiveType = PrimitiveType.TriangleList,
+				PipelineLayoutInfo = new GraphicsPipelineLayoutInfo(0, 1),
+				RasterizerState = RasterizerState.CW_CullNone,
+				MultisampleState = MultisampleState.None,
+				DepthStencilState = DepthStencilState.DepthReadWrite,
+				ColorBlendState = new ColorBlendState(),
+				AttachmentInfo = new GraphicsPipelineAttachmentInfo
+				{
+					ColorAttachmentDescriptions = new ColorAttachmentDescription[]
+					{
+						new ColorAttachmentDescription
+						{
+							BlendState = ColorAttachmentBlendState.Opaque,
+							Format = TextureFormat.R8G8B8A8,
+							SampleCount = SampleCount.One
+						}
+					},
+					HasDepthStencilAttachment = true,
+					DepthStencilFormat = TextureFormat.D16
+				},
+				VertexInputState = new VertexInputState
+				{
+					VertexBindings = new VertexBinding[]
+					{
+						new VertexBinding
+						{
+							Binding = 0,
+							InputRate = VertexInputRate.Vertex,
+							Stride = (uint) Marshal.SizeOf<PositionVertex>()
+						}
+					},
+					VertexAttributes = new VertexAttribute[]
+					{
+						new VertexAttribute
+						{
+							Binding = 0,
+							Location = 0,
+							Offset = (uint) Marshal.OffsetOf<PositionColorVertex>("Position"),
+							Format = VertexElementFormat.Vector3
+						}
+					}
+				},
+				VertexShaderState = new ShaderStageState
+				{
+					EntryPointName = "main",
+					ShaderModule = skyboxVertShaderModule,
+					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>()
+				},
+				FragmentShaderState = new ShaderStageState
+				{
+					EntryPointName = "main",
+					ShaderModule = skyboxFragShaderModule,
 					UniformBufferSize = 0
 				}
 			}
@@ -211,16 +391,18 @@ public class Program : Game
 
 	protected override void Draw(System.TimeSpan dt, double alpha)
 	{
+		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), (float)Window.Width / Window.Height, 0.01f, 100f);
+		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 4f), Vector3.Zero, Vector3.Up);
+		Uniforms skyboxUniforms = new Uniforms { ViewProjection = view * proj };
+
 		Quaternion rotation = Quaternion.CreateFromYawPitchRoll(
 			(float)timer.Elapsed.TotalSeconds * 2f,
 			0,
 			(float)timer.Elapsed.TotalSeconds * 2f
 		);
 		Matrix4x4 model = Matrix4x4.CreateFromQuaternion(rotation);
-		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), (float)Window.Width / Window.Height, 0.01f, 10f);
-		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 4f), Vector3.Zero, Vector3.Up);
-		Matrix4x4 viewProjection = model * view * proj;
-		Uniforms uniforms = new Uniforms { ViewProjection = viewProjection };
+		Matrix4x4 cubeModelViewProjection = model * view * proj;
+		Uniforms cubeUniforms = new Uniforms { ViewProjection = cubeModelViewProjection };
 
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
 		cmdbuf.BeginRenderPass(
@@ -243,13 +425,23 @@ public class Program : Game
 				StoreOp = StoreOp.Store
 			}
 		);
-		cmdbuf.BindGraphicsPipeline(cubePipeline);
-		cmdbuf.BindVertexBuffers(0, new BufferBinding(vertexBuffer, 0));
-		cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-		uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(uniforms);
-		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
-		cmdbuf.EndRenderPass();
 
+		// Draw cube
+		cmdbuf.BindGraphicsPipeline(cubePipeline);
+		cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
+		cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+		uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
+		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+
+		// Draw skybox
+		cmdbuf.BindGraphicsPipeline(skyboxPipeline);
+		cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
+		cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+		cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
+		vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
+		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+
+		cmdbuf.EndRenderPass();
 		cmdbuf.QueuePresent(colorTarget.TextureSlice, Filter.Linear, Window);
 		GraphicsDevice.Submit(cmdbuf);
 	}
