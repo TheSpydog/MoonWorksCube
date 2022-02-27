@@ -217,7 +217,7 @@ public class Program : Game
 			(float)timer.Elapsed.TotalSeconds * 2f
 		);
 		Matrix4x4 model = Matrix4x4.CreateFromQuaternion(rotation);
-		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), Window.Width / Window.Height, 0.01f, 10f);
+		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), (float)Window.Width / Window.Height, 0.01f, 10f);
 		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 4f), Vector3.Zero, Vector3.Up);
 		Matrix4x4 viewProjection = model * view * proj;
 		Uniforms uniforms = new Uniforms { ViewProjection = viewProjection };
