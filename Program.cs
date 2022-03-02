@@ -39,6 +39,7 @@ public class Program : Game
 		public Matrix4x4 ViewProjection;
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
 	struct PositionColorVertex
 	{
 		public Vector3 Position;
@@ -51,6 +52,7 @@ public class Program : Game
 		}
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
 	struct PositionVertex
 	{
 		public Vector3 Position;
@@ -130,20 +132,20 @@ public class Program : Game
 		);
 		skyboxSampler = new Sampler(GraphicsDevice, new SamplerCreateInfo());
 
-		cubeVertexBuffer = new Buffer(
+		cubeVertexBuffer = Buffer.Create<PositionColorVertex>(
 			GraphicsDevice,
 			BufferUsageFlags.Vertex,
-			(uint) (Marshal.SizeOf<PositionColorVertex>() * 24)
+			24
 		);
-		skyboxVertexBuffer = new Buffer(
+		skyboxVertexBuffer = Buffer.Create<PositionVertex>(
 			GraphicsDevice,
 			BufferUsageFlags.Vertex,
-			(uint) (Marshal.SizeOf<PositionVertex>() * 24)
+			24
 		);
-		indexBuffer = new Buffer(
+		indexBuffer = Buffer.Create<ushort>(
 			GraphicsDevice,
 			BufferUsageFlags.Index,
-			(uint) (Marshal.SizeOf<ushort>() * 36)
+			36
 		);
 
 		Task loadingTask = Task.Run(() => UploadGPUAssets(baseContentPath));
@@ -209,7 +211,7 @@ public class Program : Game
 		// Begin submitting resource data to the GPU.
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
 
-		cmdbuf.SetBufferData<PositionColorVertex>(
+		cmdbuf.SetBufferData(
 			cubeVertexBuffer,
 			new PositionColorVertex[]
 			{
@@ -245,7 +247,7 @@ public class Program : Game
 			}
 		);
 
-		cmdbuf.SetBufferData<PositionVertex>(
+		cmdbuf.SetBufferData(
 			skyboxVertexBuffer,
 			new PositionVertex[]
 			{
@@ -281,7 +283,7 @@ public class Program : Game
 			}
 		);
 
-		cmdbuf.SetBufferData<ushort>(
+		cmdbuf.SetBufferData(
 			indexBuffer,
 			new ushort[]
 			{
@@ -356,7 +358,7 @@ public class Program : Game
 				cmdbuf.BindGraphicsPipeline(cubePipeline);
 				cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
 				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-				uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
+				uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms(cubeUniforms);
 				cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
 				// Draw skybox
@@ -364,7 +366,7 @@ public class Program : Game
 				cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
 				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
 				cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
-				vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
+				vertexParamOffset = cmdbuf.PushVertexShaderUniforms(skyboxUniforms);
 				cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
 				cmdbuf.EndRenderPass();
