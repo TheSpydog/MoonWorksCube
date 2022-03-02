@@ -397,29 +397,33 @@ public class Program : Game
 
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
 
-		Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(Window);
+		Texture? swapchainTexture = cmdbuf.AcquireSwapchainTexture(Window);
 
-		cmdbuf.BeginRenderPass(
-			new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
-			new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue)
-		);
+		if (swapchainTexture != null)
+		{
+			cmdbuf.BeginRenderPass(
+				new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
+				new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue)
+			);
 
-		// Draw cube
-		cmdbuf.BindGraphicsPipeline(cubePipeline);
-		cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
-		cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-		uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
-		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+			// Draw cube
+			cmdbuf.BindGraphicsPipeline(cubePipeline);
+			cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
+			cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+			uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
+			cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
-		// Draw skybox
-		cmdbuf.BindGraphicsPipeline(skyboxPipeline);
-		cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
-		cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-		cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
-		vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
-		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+			// Draw skybox
+			cmdbuf.BindGraphicsPipeline(skyboxPipeline);
+			cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
+			cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+			cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
+			vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
+			cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
-		cmdbuf.EndRenderPass();
+			cmdbuf.EndRenderPass();
+		}
+
 		GraphicsDevice.Submit(cmdbuf);
 	}
 
