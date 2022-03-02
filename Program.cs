@@ -152,68 +152,25 @@ public class Program : Game
 			GraphicsDevice,
 			new GraphicsPipelineCreateInfo
 			{
-				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
-				PrimitiveType = PrimitiveType.TriangleList,
-				RasterizerState = RasterizerState.CW_CullBack,
-				MultisampleState = MultisampleState.None,
+				AttachmentInfo = new GraphicsPipelineAttachmentInfo(
+					TextureFormat.D16,
+					new ColorAttachmentDescription(
+						GraphicsDevice.GetSwapchainFormat(Window),
+						ColorAttachmentBlendState.Opaque
+					)
+				),
 				DepthStencilState = DepthStencilState.DepthReadWrite,
-				AttachmentInfo = new GraphicsPipelineAttachmentInfo
-				{
-					ColorAttachmentDescriptions = new ColorAttachmentDescription[]
-					{
-						new ColorAttachmentDescription
-						{
-							BlendState = ColorAttachmentBlendState.Opaque,
-							Format = GraphicsDevice.GetSwapchainFormat(Window),
-							SampleCount = SampleCount.One
-						}
-					},
-					HasDepthStencilAttachment = true,
-					DepthStencilFormat = TextureFormat.D16
-				},
-				VertexInputState = new VertexInputState
-				{
-					VertexBindings = new VertexBinding[]
-					{
-						new VertexBinding
-						{
-							Binding = 0,
-							InputRate = VertexInputRate.Vertex,
-							Stride = (uint) Marshal.SizeOf<PositionColorVertex>()
-						}
-					},
-					VertexAttributes = new VertexAttribute[]
-					{
-						new VertexAttribute
-						{
-							Binding = 0,
-							Location = 0,
-							Offset = (uint) Marshal.OffsetOf<PositionColorVertex>("Position"),
-							Format = VertexElementFormat.Vector3
-						},
-						new VertexAttribute
-						{
-							Binding = 0,
-							Location = 1,
-							Offset = (uint) Marshal.OffsetOf<PositionColorVertex>("Color"),
-							Format = VertexElementFormat.Color
-						}
-					}
-				},
-				VertexShaderInfo = new GraphicsShaderInfo
-				{
-					EntryPointName = "main",
-					ShaderModule = cubeVertShaderModule,
-					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>(),
-					SamplerBindingCount = 0
-				},
-				FragmentShaderInfo = new GraphicsShaderInfo
-				{
-					EntryPointName = "main",
-					ShaderModule = cubeFragShaderModule,
-					UniformBufferSize = 0,
-					SamplerBindingCount = 0
-				}
+				VertexShaderInfo = GraphicsShaderInfo.Create<Uniforms>(cubeVertShaderModule, "main", 0),
+				VertexInputState = new VertexInputState(
+					VertexBinding.Create<PositionColorVertex>(),
+					VertexAttribute.Create<PositionColorVertex>("Position", 0),
+					VertexAttribute.Create<PositionColorVertex>("Color", 1)
+				),
+				PrimitiveType = PrimitiveType.TriangleList,
+				FragmentShaderInfo = GraphicsShaderInfo.Create(cubeFragShaderModule, "main", 0),
+				RasterizerState = RasterizerState.CW_CullBack,
+				ViewportState = new ViewportState((int)Window.Width, (int)Window.Height),
+				MultisampleState = MultisampleState.None
 			}
 		);
 
@@ -221,61 +178,24 @@ public class Program : Game
 			GraphicsDevice,
 			new GraphicsPipelineCreateInfo
 			{
-				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
-				PrimitiveType = PrimitiveType.TriangleList,
-				RasterizerState = RasterizerState.CW_CullNone,
-				MultisampleState = MultisampleState.None,
+				AttachmentInfo = new GraphicsPipelineAttachmentInfo(
+					TextureFormat.D16,
+					new ColorAttachmentDescription(
+						GraphicsDevice.GetSwapchainFormat(Window),
+						ColorAttachmentBlendState.Opaque
+					)
+				),
 				DepthStencilState = DepthStencilState.DepthReadWrite,
-				AttachmentInfo = new GraphicsPipelineAttachmentInfo
-				{
-					ColorAttachmentDescriptions = new ColorAttachmentDescription[]
-					{
-						new ColorAttachmentDescription
-						{
-							BlendState = ColorAttachmentBlendState.Opaque,
-							Format = GraphicsDevice.GetSwapchainFormat(Window),
-							SampleCount = SampleCount.One
-						}
-					},
-					HasDepthStencilAttachment = true,
-					DepthStencilFormat = TextureFormat.D16
-				},
-				VertexInputState = new VertexInputState
-				{
-					VertexBindings = new VertexBinding[]
-					{
-						new VertexBinding
-						{
-							Binding = 0,
-							InputRate = VertexInputRate.Vertex,
-							Stride = (uint) Marshal.SizeOf<PositionVertex>()
-						}
-					},
-					VertexAttributes = new VertexAttribute[]
-					{
-						new VertexAttribute
-						{
-							Binding = 0,
-							Location = 0,
-							Offset = (uint) Marshal.OffsetOf<PositionColorVertex>("Position"),
-							Format = VertexElementFormat.Vector3
-						}
-					}
-				},
-				VertexShaderInfo = new GraphicsShaderInfo
-				{
-					EntryPointName = "main",
-					ShaderModule = skyboxVertShaderModule,
-					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>(),
-					SamplerBindingCount = 0
-				},
-				FragmentShaderInfo = new GraphicsShaderInfo
-				{
-					EntryPointName = "main",
-					ShaderModule = skyboxFragShaderModule,
-					UniformBufferSize = 0,
-					SamplerBindingCount = 1
-				}
+				VertexShaderInfo = GraphicsShaderInfo.Create<Uniforms>(skyboxVertShaderModule, "main", 0),
+				VertexInputState = new VertexInputState(
+					VertexBinding.Create<PositionVertex>(),
+					VertexAttribute.Create<PositionVertex>("Position", 0)
+				),
+				PrimitiveType = PrimitiveType.TriangleList,
+				FragmentShaderInfo = GraphicsShaderInfo.Create(skyboxFragShaderModule, "main", 1),
+				RasterizerState = RasterizerState.CW_CullNone,
+				ViewportState = new ViewportState((int)Window.Width, (int)Window.Height),
+				MultisampleState = MultisampleState.None,
 			}
 		);
 
