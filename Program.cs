@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -29,6 +30,7 @@ public class Program : Game
 	Buffer indexBuffer;
 	Texture skyboxTexture;
 	Sampler skyboxSampler;
+	bool finishedLoading;
 
 	Stopwatch timer;
 
@@ -144,105 +146,7 @@ public class Program : Game
 			(uint) (Marshal.SizeOf<ushort>() * 36)
 		);
 
-		// Begin submitting resource data to the GPU.
-		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
-
-		cmdbuf.SetBufferData<PositionColorVertex>(
-			cubeVertexBuffer,
-			new PositionColorVertex[]
-			{
-				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(1f, 0f, 0f)),
-				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, -1), new Color(1f, 0f, 0f)),
-				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(1f, 0f, 0f)),
-
-				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(0f, 1f, 0f)),
-				new PositionColorVertex(new Vector3(1, -1, 1), new Color(0f, 1f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, 1), new Color(0f, 1f, 0f)),
-				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 1f, 0f)),
-
-				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(0f, 0f, 1f)),
-				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(0f, 0f, 1f)),
-				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 0f, 1f)),
-				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(0f, 0f, 1f)),
-
-				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, -1), new Color(1f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, 1), new Color(1f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, -1, 1), new Color(1f, 0.5f, 0f)),
-
-				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(1f, 0f, 0.5f)),
-				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(1f, 0f, 0.5f)),
-				new PositionColorVertex(new Vector3(1, -1, 1), new Color(1f, 0f, 0.5f)),
-				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0f, 0.5f)),
-
-				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(0f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, 1), new Color(0f, 0.5f, 0f)),
-				new PositionColorVertex(new Vector3(1, 1, -1), new Color(0f, 0.5f, 0f))
-			}
-		);
-
-		cmdbuf.SetBufferData<PositionVertex>(
-			skyboxVertexBuffer,
-			new PositionVertex[]
-			{
-				new PositionVertex(new Vector3(-10, -10, -10)),
-				new PositionVertex(new Vector3(10, -10, -10)),
-				new PositionVertex(new Vector3(10, 10, -10)),
-				new PositionVertex(new Vector3(-10, 10, -10)),
-
-				new PositionVertex(new Vector3(-10, -10, 10)),
-				new PositionVertex(new Vector3(10, -10, 10)),
-				new PositionVertex(new Vector3(10, 10, 10)),
-				new PositionVertex(new Vector3(-10, 10, 10)),
-
-				new PositionVertex(new Vector3(-10, -10, -10)),
-				new PositionVertex(new Vector3(-10, 10, -10)),
-				new PositionVertex(new Vector3(-10, 10, 10)),
-				new PositionVertex(new Vector3(-10, -10, 10)),
-
-				new PositionVertex(new Vector3(10, -10, -10)),
-				new PositionVertex(new Vector3(10, 10, -10)),
-				new PositionVertex(new Vector3(10, 10, 10)),
-				new PositionVertex(new Vector3(10, -10, 10)),
-
-				new PositionVertex(new Vector3(-10, -10, -10)),
-				new PositionVertex(new Vector3(-10, -10, 10)),
-				new PositionVertex(new Vector3(10, -10, 10)),
-				new PositionVertex(new Vector3(10, -10, -10)),
-
-				new PositionVertex(new Vector3(-10, 10, -10)),
-				new PositionVertex(new Vector3(-10, 10, 10)),
-				new PositionVertex(new Vector3(10, 10, 10)),
-				new PositionVertex(new Vector3(10, 10, -10))
-			}
-		);
-
-		cmdbuf.SetBufferData<ushort>(
-			indexBuffer,
-			new ushort[]
-			{
-				0, 1, 2,	0, 2, 3,
-				6, 5, 4,	7, 6, 4,
-				8, 9, 10,	8, 10, 11,
-				14, 13, 12,	15, 14, 12,
-				16, 17, 18,	16, 18, 19,
-				22, 21, 20,	23, 22, 20
-			}
-		);
-
-		LoadCubemap(cmdbuf, new string[]
-		{
-			Path.Combine(baseContentPath, "right.png"),
-			Path.Combine(baseContentPath, "left.png"),
-			Path.Combine(baseContentPath, "top.png"),
-			Path.Combine(baseContentPath, "bottom.png"),
-			Path.Combine(baseContentPath, "front.png"),
-			Path.Combine(baseContentPath, "back.png"),
-		});
-
-		GraphicsDevice.Submit(cmdbuf);
+		Task loadingTask = Task.Run(() => UploadGPUAssets(baseContentPath));
 
 		cubePipeline = new GraphicsPipeline(
 			GraphicsDevice,
@@ -378,6 +282,114 @@ public class Program : Game
 		timer = Stopwatch.StartNew();
 	}
 
+	private void UploadGPUAssets(string baseContentPath)
+	{
+		System.Console.WriteLine("Loading...");
+
+		// Begin submitting resource data to the GPU.
+		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
+
+		cmdbuf.SetBufferData<PositionColorVertex>(
+			cubeVertexBuffer,
+			new PositionColorVertex[]
+			{
+				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(1f, 0f, 0f)),
+				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, -1), new Color(1f, 0f, 0f)),
+				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(1f, 0f, 0f)),
+
+				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(0f, 1f, 0f)),
+				new PositionColorVertex(new Vector3(1, -1, 1), new Color(0f, 1f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, 1), new Color(0f, 1f, 0f)),
+				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 1f, 0f)),
+
+				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(0f, 0f, 1f)),
+				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(0f, 0f, 1f)),
+				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 0f, 1f)),
+				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(0f, 0f, 1f)),
+
+				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, -1), new Color(1f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, 1), new Color(1f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, -1, 1), new Color(1f, 0.5f, 0f)),
+
+				new PositionColorVertex(new Vector3(-1, -1, -1), new Color(1f, 0f, 0.5f)),
+				new PositionColorVertex(new Vector3(-1, -1, 1), new Color(1f, 0f, 0.5f)),
+				new PositionColorVertex(new Vector3(1, -1, 1), new Color(1f, 0f, 0.5f)),
+				new PositionColorVertex(new Vector3(1, -1, -1), new Color(1f, 0f, 0.5f)),
+
+				new PositionColorVertex(new Vector3(-1, 1, -1), new Color(0f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(-1, 1, 1), new Color(0f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, 1), new Color(0f, 0.5f, 0f)),
+				new PositionColorVertex(new Vector3(1, 1, -1), new Color(0f, 0.5f, 0f))
+			}
+		);
+
+		cmdbuf.SetBufferData<PositionVertex>(
+			skyboxVertexBuffer,
+			new PositionVertex[]
+			{
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(10, -10, -10)),
+				new PositionVertex(new Vector3(10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, -10)),
+
+				new PositionVertex(new Vector3(-10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(-10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+				new PositionVertex(new Vector3(-10, -10, 10)),
+
+				new PositionVertex(new Vector3(10, -10, -10)),
+				new PositionVertex(new Vector3(10, 10, -10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+
+				new PositionVertex(new Vector3(-10, -10, -10)),
+				new PositionVertex(new Vector3(-10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, 10)),
+				new PositionVertex(new Vector3(10, -10, -10)),
+
+				new PositionVertex(new Vector3(-10, 10, -10)),
+				new PositionVertex(new Vector3(-10, 10, 10)),
+				new PositionVertex(new Vector3(10, 10, 10)),
+				new PositionVertex(new Vector3(10, 10, -10))
+			}
+		);
+
+		cmdbuf.SetBufferData<ushort>(
+			indexBuffer,
+			new ushort[]
+			{
+				0, 1, 2,	0, 2, 3,
+				6, 5, 4,	7, 6, 4,
+				8, 9, 10,	8, 10, 11,
+				14, 13, 12,	15, 14, 12,
+				16, 17, 18,	16, 18, 19,
+				22, 21, 20,	23, 22, 20
+			}
+		);
+
+		LoadCubemap(cmdbuf, new string[]
+		{
+			Path.Combine(baseContentPath, "right.png"),
+			Path.Combine(baseContentPath, "left.png"),
+			Path.Combine(baseContentPath, "top.png"),
+			Path.Combine(baseContentPath, "bottom.png"),
+			Path.Combine(baseContentPath, "front.png"),
+			Path.Combine(baseContentPath, "back.png"),
+		});
+
+		GraphicsDevice.Submit(cmdbuf);
+
+		finishedLoading = true;
+		System.Console.WriteLine("Finished loading!");
+	}
+
 	protected override void Update(System.TimeSpan dt) { }
 
 	protected override void Draw(System.TimeSpan dt, double alpha)
@@ -401,27 +413,42 @@ public class Program : Game
 
 		if (swapchainTexture != null)
 		{
-			cmdbuf.BeginRenderPass(
-				new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
-				new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue)
-			);
+			if (!finishedLoading)
+			{
+				float sine = (float) System.Math.Abs(System.Math.Sin(timer.Elapsed.TotalSeconds));
+				Color clearColor = new Color(sine, sine, sine);
 
-			// Draw cube
-			cmdbuf.BindGraphicsPipeline(cubePipeline);
-			cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
-			cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-			uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
-			cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+				// Just show a clear screen.
+				cmdbuf.BeginRenderPass(
+					new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
+					new ColorAttachmentInfo(swapchainTexture, clearColor)
+				);
+				cmdbuf.EndRenderPass();
+			}
+			else
+			{
+				cmdbuf.BeginRenderPass(
+					new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
+					new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue)
+				);
 
-			// Draw skybox
-			cmdbuf.BindGraphicsPipeline(skyboxPipeline);
-			cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
-			cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
-			cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
-			vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
-			cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+				// Draw cube
+				cmdbuf.BindGraphicsPipeline(cubePipeline);
+				cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
+				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+				uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(cubeUniforms);
+				cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
-			cmdbuf.EndRenderPass();
+				// Draw skybox
+				cmdbuf.BindGraphicsPipeline(skyboxPipeline);
+				cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
+				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
+				cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
+				vertexParamOffset = cmdbuf.PushVertexShaderUniforms<Uniforms>(skyboxUniforms);
+				cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
+
+				cmdbuf.EndRenderPass();
+			}
 		}
 
 		GraphicsDevice.Submit(cmdbuf);
