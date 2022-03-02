@@ -23,8 +23,7 @@ public class Program : Game
 
 	GraphicsPipeline cubePipeline;
 	GraphicsPipeline skyboxPipeline;
-	RenderTarget colorTarget;
-	RenderTarget depthTarget;
+	Texture depthTexture;
 	Buffer cubeVertexBuffer;
 	Buffer skyboxVertexBuffer;
 	Buffer indexBuffer;
@@ -83,6 +82,7 @@ public class Program : Game
 				textureData,
 				(uint) (w * h * 4) // w * h * numChannels does not work
 			);
+			RefreshCS.Refresh.Refresh_Image_Free(textureData);
 		}
 	}
 
@@ -112,22 +112,13 @@ public class Program : Game
 			Path.Combine(baseContentPath, "skybox_frag.spv")
 		);
 
-		colorTarget = RenderTarget.CreateBackedRenderTarget(
-			GraphicsDevice,
-			Window.Width,
-			Window.Height,
-			TextureFormat.R8G8B8A8,
-			false
-		);
-
-		Texture depthTex = Texture.CreateTexture2D(
+		depthTexture = Texture.CreateTexture2D(
 			GraphicsDevice,
 			Window.Width,
 			Window.Height,
 			TextureFormat.D16,
 			TextureUsageFlags.DepthStencilTarget
 		);
-		depthTarget = new RenderTarget(GraphicsDevice, new TextureSlice(depthTex));
 
 		skyboxTexture = Texture.CreateTextureCube(
 			GraphicsDevice,
@@ -271,7 +262,7 @@ public class Program : Game
 						new ColorAttachmentDescription
 						{
 							BlendState = ColorAttachmentBlendState.Opaque,
-							Format = TextureFormat.R8G8B8A8,
+							Format = GraphicsDevice.GetSwapchainFormat(Window),
 							SampleCount = SampleCount.One
 						}
 					},
@@ -340,7 +331,7 @@ public class Program : Game
 						new ColorAttachmentDescription
 						{
 							BlendState = ColorAttachmentBlendState.Opaque,
-							Format = TextureFormat.R8G8B8A8,
+							Format = GraphicsDevice.GetSwapchainFormat(Window),
 							SampleCount = SampleCount.One
 						}
 					},
@@ -405,21 +396,33 @@ public class Program : Game
 		Uniforms cubeUniforms = new Uniforms { ViewProjection = cubeModelViewProjection };
 
 		CommandBuffer cmdbuf = GraphicsDevice.AcquireCommandBuffer();
+
+		Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(Window);
+
 		cmdbuf.BeginRenderPass(
 			new DepthStencilAttachmentInfo
 			{
-				DepthStencilTarget = depthTarget,
-				DepthStencilValue = new DepthStencilValue
+				Texture = depthTexture,
+				Depth = 0,
+				Layer = 0,
+				Level = 0,
+				DepthStencilClearValue = new DepthStencilValue
 				{
 					Depth = 1f,
 					Stencil = 0
 				},
 				LoadOp = LoadOp.Clear,
-				StoreOp = StoreOp.DontCare
+				StoreOp = StoreOp.DontCare,
+				StencilLoadOp = LoadOp.DontCare,
+				StencilStoreOp = StoreOp.DontCare
 			},
 			new ColorAttachmentInfo
 			{
-				RenderTarget = colorTarget,
+				Texture = swapchainTexture,
+				Depth = 0,
+				Layer = 0,
+				Level = 0,
+				SampleCount = SampleCount.One,
 				ClearColor = Color.CornflowerBlue,
 				LoadOp = LoadOp.Clear,
 				StoreOp = StoreOp.Store
@@ -442,7 +445,6 @@ public class Program : Game
 		cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
 		cmdbuf.EndRenderPass();
-		cmdbuf.QueuePresent(colorTarget.TextureSlice, Filter.Linear, Window);
 		GraphicsDevice.Submit(cmdbuf);
 	}
 
