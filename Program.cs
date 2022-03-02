@@ -400,33 +400,8 @@ public class Program : Game
 		Texture swapchainTexture = cmdbuf.AcquireSwapchainTexture(Window);
 
 		cmdbuf.BeginRenderPass(
-			new DepthStencilAttachmentInfo
-			{
-				Texture = depthTexture,
-				Depth = 0,
-				Layer = 0,
-				Level = 0,
-				DepthStencilClearValue = new DepthStencilValue
-				{
-					Depth = 1f,
-					Stencil = 0
-				},
-				LoadOp = LoadOp.Clear,
-				StoreOp = StoreOp.DontCare,
-				StencilLoadOp = LoadOp.DontCare,
-				StencilStoreOp = StoreOp.DontCare
-			},
-			new ColorAttachmentInfo
-			{
-				Texture = swapchainTexture,
-				Depth = 0,
-				Layer = 0,
-				Level = 0,
-				SampleCount = SampleCount.One,
-				ClearColor = Color.CornflowerBlue,
-				LoadOp = LoadOp.Clear,
-				StoreOp = StoreOp.Store
-			}
+			new DepthStencilAttachmentInfo(depthTexture, new DepthStencilValue(1f, 0)),
+			new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue)
 		);
 
 		// Draw cube
