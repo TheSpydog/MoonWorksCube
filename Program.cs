@@ -250,11 +250,9 @@ public class Program : Game
 			{
 				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
 				PrimitiveType = PrimitiveType.TriangleList,
-				PipelineLayoutInfo = new GraphicsPipelineLayoutInfo(0, 0),
 				RasterizerState = RasterizerState.CW_CullBack,
 				MultisampleState = MultisampleState.None,
 				DepthStencilState = DepthStencilState.DepthReadWrite,
-				ColorBlendState = new ColorBlendState(),
 				AttachmentInfo = new GraphicsPipelineAttachmentInfo
 				{
 					ColorAttachmentDescriptions = new ColorAttachmentDescription[]
@@ -298,17 +296,19 @@ public class Program : Game
 						}
 					}
 				},
-				VertexShaderState = new ShaderStageState
+				VertexShaderInfo = new GraphicsShaderInfo
 				{
 					EntryPointName = "main",
 					ShaderModule = cubeVertShaderModule,
-					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>()
+					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>(),
+					SamplerBindingCount = 0
 				},
-				FragmentShaderState = new ShaderStageState
+				FragmentShaderInfo = new GraphicsShaderInfo
 				{
 					EntryPointName = "main",
 					ShaderModule = cubeFragShaderModule,
-					UniformBufferSize = 0
+					UniformBufferSize = 0,
+					SamplerBindingCount = 0
 				}
 			}
 		);
@@ -319,11 +319,9 @@ public class Program : Game
 			{
 				ViewportState = new ViewportState((int) Window.Width, (int) Window.Height),
 				PrimitiveType = PrimitiveType.TriangleList,
-				PipelineLayoutInfo = new GraphicsPipelineLayoutInfo(0, 1),
 				RasterizerState = RasterizerState.CW_CullNone,
 				MultisampleState = MultisampleState.None,
 				DepthStencilState = DepthStencilState.DepthReadWrite,
-				ColorBlendState = new ColorBlendState(),
 				AttachmentInfo = new GraphicsPipelineAttachmentInfo
 				{
 					ColorAttachmentDescriptions = new ColorAttachmentDescription[]
@@ -360,17 +358,19 @@ public class Program : Game
 						}
 					}
 				},
-				VertexShaderState = new ShaderStageState
+				VertexShaderInfo = new GraphicsShaderInfo
 				{
 					EntryPointName = "main",
 					ShaderModule = skyboxVertShaderModule,
-					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>()
+					UniformBufferSize = (uint) Marshal.SizeOf<Uniforms>(),
+					SamplerBindingCount = 0
 				},
-				FragmentShaderState = new ShaderStageState
+				FragmentShaderInfo = new GraphicsShaderInfo
 				{
 					EntryPointName = "main",
 					ShaderModule = skyboxFragShaderModule,
-					UniformBufferSize = 0
+					UniformBufferSize = 0,
+					SamplerBindingCount = 1
 				}
 			}
 		);
