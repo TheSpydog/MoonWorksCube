@@ -10,15 +10,15 @@ public class Program : Game
 {
 	public static void Main(string[] args)
 	{
-		WindowCreateInfo windowCreateInfo = new WindowCreateInfo
-		{
-			WindowTitle = "Cube",
-			ScreenMode = ScreenMode.Windowed,
-			WindowWidth = 640,
-			WindowHeight = 480,
-		};
-
-		Program p = new Program(windowCreateInfo, PresentMode.FIFORelaxed);
+        Program p = new Program(
+			new WindowCreateInfo(
+				"Cube",
+				640,
+				480,
+				ScreenMode.Windowed
+			),
+			PresentMode.FIFORelaxed
+		);
 		p.Run();
 	}
 
@@ -356,14 +356,14 @@ public class Program : Game
 
 				// Draw cube
 				cmdbuf.BindGraphicsPipeline(cubePipeline);
-				cmdbuf.BindVertexBuffers(0, new BufferBinding(cubeVertexBuffer, 0));
+				cmdbuf.BindVertexBuffers(cubeVertexBuffer);
 				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
 				uint vertexParamOffset = cmdbuf.PushVertexShaderUniforms(cubeUniforms);
 				cmdbuf.DrawIndexedPrimitives(0, 0, 12, vertexParamOffset, 0);
 
 				// Draw skybox
 				cmdbuf.BindGraphicsPipeline(skyboxPipeline);
-				cmdbuf.BindVertexBuffers(0, new BufferBinding(skyboxVertexBuffer, 0));
+				cmdbuf.BindVertexBuffers(skyboxVertexBuffer);
 				cmdbuf.BindIndexBuffer(indexBuffer, IndexElementSize.Sixteen);
 				cmdbuf.BindFragmentSamplers(new TextureSamplerBinding(skyboxTexture, skyboxSampler));
 				vertexParamOffset = cmdbuf.PushVertexShaderUniforms(skyboxUniforms);
