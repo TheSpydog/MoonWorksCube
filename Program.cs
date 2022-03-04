@@ -171,7 +171,6 @@ public class Program : Game
 				PrimitiveType = PrimitiveType.TriangleList,
 				FragmentShaderInfo = GraphicsShaderInfo.Create(cubeFragShaderModule, "main", 0),
 				RasterizerState = RasterizerState.CW_CullBack,
-				ViewportState = new ViewportState((int)Window.Width, (int)Window.Height),
 				MultisampleState = MultisampleState.None
 			}
 		);
@@ -196,7 +195,6 @@ public class Program : Game
 				PrimitiveType = PrimitiveType.TriangleList,
 				FragmentShaderInfo = GraphicsShaderInfo.Create(skyboxFragShaderModule, "main", 1),
 				RasterizerState = RasterizerState.CW_CullNone,
-				ViewportState = new ViewportState((int)Window.Width, (int)Window.Height),
 				MultisampleState = MultisampleState.None,
 			}
 		);
