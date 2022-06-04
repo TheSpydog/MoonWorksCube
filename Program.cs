@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
+using MoonWorks.Math.Float;
 
 public class Program : Game
 {
@@ -17,7 +18,12 @@ public class Program : Game
 				480,
 				ScreenMode.Windowed
 			),
-			PresentMode.FIFORelaxed
+			PresentMode.Immediate,
+			new FramerateSettings
+			{
+				Mode = FramerateMode.Capped,
+				Cap = 144
+			}
 		);
 		p.Run();
 	}
@@ -31,6 +37,10 @@ public class Program : Game
 	Texture skyboxTexture;
 	Sampler skyboxSampler;
 	bool finishedLoading;
+
+	float cubeTimer = 0f;
+	Quaternion cubeRotation = Quaternion.Identity;
+	Quaternion previousCubeRotation = Quaternion.Identity;
 
 	Stopwatch timer;
 
@@ -90,8 +100,8 @@ public class Program : Game
 		}
 	}
 
-	public Program(WindowCreateInfo windowCreateInfo, PresentMode presentMode)
-		: base(windowCreateInfo, presentMode, 60, true)
+	public Program(WindowCreateInfo windowCreateInfo, PresentMode presentMode, FramerateSettings framerateSettings)
+		: base(windowCreateInfo, presentMode, framerateSettings, 15, true)
 	{
 		string baseContentPath = Path.Combine(
 			System.AppDomain.CurrentDomain.BaseDirectory,
@@ -199,7 +209,8 @@ public class Program : Game
 			}
 		);
 
-		timer = Stopwatch.StartNew();
+		timer = new Stopwatch();
+		timer.Start();
 	}
 
 	private void UploadGPUAssets(string baseContentPath)
@@ -310,20 +321,26 @@ public class Program : Game
 		System.Console.WriteLine("Finished loading!");
 	}
 
-	protected override void Update(System.TimeSpan dt) { }
+	protected override void Update(System.TimeSpan dt)
+	{
+		cubeTimer += (float) dt.TotalSeconds;
 
-	protected override void Draw(System.TimeSpan dt, double alpha)
+		previousCubeRotation = cubeRotation;
+
+		cubeRotation = Quaternion.CreateFromYawPitchRoll(
+			cubeTimer * 2f,
+			0,
+			cubeTimer * 2f
+		);
+	}
+
+	protected override void Draw(double alpha)
 	{
 		Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.ToRadians(75f), (float)Window.Width / Window.Height, 0.01f, 100f);
 		Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 1.5f, 4f), Vector3.Zero, Vector3.Up);
 		Uniforms skyboxUniforms = new Uniforms { ViewProjection = view * proj };
 
-		Quaternion rotation = Quaternion.CreateFromYawPitchRoll(
-			(float)timer.Elapsed.TotalSeconds * 2f,
-			0,
-			(float)timer.Elapsed.TotalSeconds * 2f
-		);
-		Matrix4x4 model = Matrix4x4.CreateFromQuaternion(rotation);
+		Matrix4x4 model = Matrix4x4.CreateFromQuaternion(Quaternion.Slerp(previousCubeRotation, cubeRotation, (float) alpha));
 		Matrix4x4 cubeModelViewProjection = model * view * proj;
 		Uniforms cubeUniforms = new Uniforms { ViewProjection = cubeModelViewProjection };
 
@@ -373,6 +390,4 @@ public class Program : Game
 
 		GraphicsDevice.Submit(cmdbuf);
 	}
-
-	protected override void OnDestroy() { }
 }
